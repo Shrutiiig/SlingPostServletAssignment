@@ -1,76 +1,102 @@
-//import javax.servlet.Servlet;
-//import java.io.IOException;
-//import org.osgi.service.component.annotations.Component;
-//import org.apache.felix.scr.annotations.sling.SlingServlet;
-//import org.apache.sling.api.SlingHttpServletRequest;
-//import org.apache.sling.api.SlingHttpServletResponse;
-//import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
-////import org.apache.sling.jcr.api.SlingRepository;
-////import org.apache.felix.scr.annotations.Property;
-////import org.apache.felix.scr.annotations.Properties;
-//import java.util.UUID;
-//import org.json.simple.JSONObject;
-//
-////@Component(metatype = true)
-////@Service(Servlet.class)
-////@Properties({
-////        @Property(name = "sling.servlet.paths", value = "/libs/myservlet"),
-////})
-//
-////
-////@SlingServlet(
-////        resourceTypes = "myproject/components/page",
-////        selectors={"hello","hello1"}
-////        )
-//
-////@SlingServlet(paths="/bin/mySearchServlet", methods = "POST", metatype=true)
-//
-//@SlingServlet(paths="/bin/mySearchServlet", methods = "POST", metatype=true)
-//
-//public class SlingServletRegisterwithResourceType extends SlingSafeMethodsServlet{
-//    @Override
-//    protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException{
-////        Resource resource = request.getResource();
-////        response.getWriter().println("Title=" + resource.getValueMap().get("jar : title"));
-////        response.getWriter().println("PageTitle=" + resource.getValueMap().get("pageTitle"));
-////        response.getWriter().println(resource.toString());
-////        response.getWriter().println("Servlet is registered by Path");
-//
-//        try
-//        {
-//            //Get the submitted form data that is sent from the
-//            //CQ web page
-//            String id = UUID.randomUUID().toString();
-//            String firstName = request.getParameter("firstName");
-//            String lastName = request.getParameter("lastName");
-//            String address = request.getParameter("address");
-//            String cat = request.getParameter("cat");
-//            String state = request.getParameter("state");
-//            String details = request.getParameter("details");
-//            String date = request.getParameter("date");
-//            String city = request.getParameter("city");
-////
-////            //Encode the submitted form data to JSON
-////            JSONObject obj=new JSONObject();
-////            obj.put("id",id);
-////            obj.put("firstname",firstName);
-////            obj.put("lastname",lastName);
-////            obj.put("address",address);
-////            obj.put("cat",cat);
-////            obj.put("state",state);
-////            obj.put("details",details);
-////            obj.put("date",date);
-////            obj.put("city",city);
-////
-////            //Get the JSON formatted data
-////            String jsonData = obj.toJSONString();
-////
-////            //Return the JSON formatted data
-////            response.getWriter().write(jsonData);
-//        }
-//        catch(Exception e)
-//        {
-//            e.printStackTrace();
-//        }
-//    }
-//}
+package myproject.core.servlets;
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.apache.sling.servlets.annotations.SlingServletResourceTypes;
+import org.osgi.service.component.annotations.Component;
+
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.servlet.Servlet;
+import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+//http://localhost:4502/libs/myproject/components/blogs/hello.html.GET.servlet
+//http://localhost:4502/content/myproject/us/en/jcr:content/root/container/blogs.hello.html
+
+@Component(
+        service = {Servlet.class}
+)
+@SlingServletResourceTypes(
+        resourceTypes="myproject/components/blogs",
+        methods= "GET",
+        extensions="html",
+        selectors="hello")
+public class SlingServletRegisterwithResourceType extends SlingSafeMethodsServlet {
+
+    @Override
+    protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
+
+        response.setContentType("text/plain");
+
+        Resource resource=request.getResource();
+
+        Iterable<Resource> resourceChildrens = resource.getChildren();
+        HashMap<String, String> hashMap=new HashMap<String,String>();
+        String title="";
+        String date="";
+        for(Resource children : resourceChildrens)
+        {
+            Node node=children.adaptTo(Node.class);
+            try {
+                title=node.getProperty("title").getValue().toString();
+                date=node.getProperty("date").getValue().toString();
+            } catch (RepositoryException e) {
+                e.printStackTrace();
+            }
+            hashMap.put(title,date);
+        }
+        response.getWriter().println(" Initially hashmap  :");
+        for (Map.Entry<String,String> entry : hashMap.entrySet())
+        {
+
+            response.getWriter().println("Blog: "+entry.getKey()+"  Date: "+entry.getValue());
+
+        }
+
+        Map<String,String> newmap=sortByValueAscending(hashMap);
+        response.getWriter().println(" Sorting in Ascending  :");
+        for (Map.Entry<String,String> entry : newmap.entrySet())
+        {
+            response.getWriter().println("Blog: "+entry.getKey()+"   Date: "+entry.getValue());
+
+        }
+    }
+
+
+    public static HashMap<String, String> sortByValueAscending(HashMap<String,String> hashmap)
+    {
+
+        List<Map.Entry<String, String> > list =
+                new LinkedList<Map.Entry<String, String> >(hashmap.entrySet());
+
+
+        Collections.sort(list, new SortByDateAscending());
+
+
+        HashMap<String, String> temp = new LinkedHashMap<String, String>();
+        for (Map.Entry<String, String> aa : list) {
+            temp.put(aa.getKey(), aa.getValue());
+        }
+        return temp;
+    }
+}
+class SortByDateAscending implements Comparator<Map.Entry<String,String>>
+{
+    @Override
+    public int compare(Map.Entry <String,String> val1, Map.Entry <String,String> val2) {
+        Date date1 = null;
+        Date date2= null;
+        try {
+            date1=new SimpleDateFormat("dd-MM-yyyy").parse(val1.getValue());
+            date2=new SimpleDateFormat("dd-MM-yyyy").parse(val2.getValue());
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return date1.compareTo(date2);
+    }
+}
