@@ -15,7 +15,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-//http://localhost:4502/libs/myproject/components/blogs/hello.html.GET.servlet
 //http://localhost:4502/content/myproject/us/en/jcr:content/root/container/blogs.hello.html
 
 @Component(

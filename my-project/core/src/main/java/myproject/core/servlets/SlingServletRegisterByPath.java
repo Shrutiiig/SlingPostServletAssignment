@@ -35,7 +35,7 @@ import java.io.IOException;
  */
 @Component(
         service = {Servlet.class},
-        property = {"sling.servlet.paths="+"/bin/myproject/"}
+        property = {"sling.servlet.paths="+"/bin/my-project/shruti"}
 )
 
 
